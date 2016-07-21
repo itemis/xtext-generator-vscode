@@ -1,0 +1,42 @@
+plugins {
+  id "org.xtext.xtend" version "1.0.6"
+}
+
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+
+group = "com.itemis.xtext"
+
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+project.ext {
+		/* Configure versions that are either likely to change or need to be reused. */
+		versions = [
+			xtext: "2.10+",
+			junit: "4.12+"
+		]
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.13'
+
+    testCompile 'junit:junit:4.12'
+    compile "org.eclipse.xtend:org.eclipse.xtend.lib:${versions.xtext}"
+	compile "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${versions.xtext}"
+}
+
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+	classifier 'sources'
+	from sourceSets.main.allSource
+}
+
+artifacts {
+	archives sourcesJar
+}
