@@ -4,9 +4,10 @@
 
 ## Usage
 
+**Gradle**
+
 Add this to your project by configuring a dependency as follows:
 
-Gradle:
 ```
 	repositories {
     	maven {
@@ -19,18 +20,12 @@ Gradle:
 	}
 ```
 
-## Workflow Configuration
+**Workflow Configuration**
+
+Add the `VSCodeExtensionFragment` to the Xtext Generator workflow component.
 
 ```
 	component = XtextGenerator {
-		configuration = {
-			project = com.itemis.xtext.generator.vscode.VSCodeProjectConfig {
-			   ...
-				vsExtension = {
-					enabled = true
-				}
-			}
-		}
 		language = StandardLanguage {
 			...
 			fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {}
@@ -38,3 +33,6 @@ Gradle:
 	}
 ```
 
+**Execute Xtext Generator**
+
+Run the Xtext generator workflow. It will create a folder `vscode-extension` within the `.ide` project.

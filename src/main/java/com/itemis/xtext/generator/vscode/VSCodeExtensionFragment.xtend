@@ -2,18 +2,21 @@ package com.itemis.xtext.generator.vscode
 
 import javax.inject.Inject
 import org.eclipse.xtend.lib.annotations.Accessors
+import org.eclipse.xtext.naming.IQualifiedNameConverter
 import org.eclipse.xtext.xtext.generator.AbstractXtextGeneratorFragment
 import org.eclipse.xtext.xtext.generator.CodeConfig
 import org.eclipse.xtext.xtext.generator.model.FileAccessFactory
+import org.eclipse.xtext.xtext.generator.model.project.IXtextProjectConfig
 
 import static com.itemis.xtext.generator.vscode.internal.FSAHelper.*
 
 class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	@Inject FileAccessFactory fileAccessFactory
 	@Inject CodeConfig codeConfig
+	@Inject extension IQualifiedNameConverter
 	
-	@Accessors String publisher
-	@Accessors String version = "0.0.1"
+	@Accessors String publisher 
+	@Accessors String version = "0.1"
 	
 	override generate() {
 		generateDummyPluginProperties
@@ -26,20 +29,20 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	
 	
 	protected def generateDummyPluginProperties () {
-		val file = fileAccessFactory.createTextFile(projectConfig.genericIde.srcGen.path+"/plugin.properties")
+		val file = fileAccessFactory.createTextFile("plugin.properties")
 		file.content = '''
 			_UI_DiagnosticRoot_diagnostic=foo
 		'''
-		writeTo(file, projectConfig.genericIde.srcGen)
+		writeTo(file, projectConfig.genericIde.root)
 	}
 	
 	protected def generatePackageJson () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.root.path+"/package.json")
+		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/package.json")
 		file.content = '''
 			{
 			    "name": "«langNameLower»-sc",
-			    "displayName": "«language.grammar.name»",
-			    "description": "«language.grammar.name» Language (self-contained)",
+			    "displayName": "«langName»",
+			    "description": "«langName» Language (self-contained)",
 			    "version": "«version»",
 			    «IF publisher!=null»
 			    "publisher": "«publisher»",
@@ -76,11 +79,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    }
 			}
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)
+		writeTo(file, projectConfig.genericIde.root)
 	}
 	
 	protected def generateConfigurationJson () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/"+langNameLower+".configuration.json")
+		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/"+langNameLower+".configuration.json")
 		file.content = '''
 			{
 			    "comments": {
@@ -113,11 +116,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    ]
 			}
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)
+		writeTo(file, projectConfig.genericIde.root)
 	}
 	
 	def protected generateTmLanguage () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/syntaxes/"+langNameLower+".tmLanguage")
+		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/syntaxes/"+langNameLower+".tmLanguage")
 		file.content = '''
 			<?xml version="1.0" encoding="UTF-8"?>
 			<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -133,7 +136,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 				<array>
 					<dict>
 						<key>name</key>
-						<string>keyword.control.«language.grammar.name»</string>
+						<string>keyword.control.«langName»</string>
 						<key>match</key>
 						<string>\b(Hello|from)\b</string>
 					</dict>
@@ -143,11 +146,12 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			</dict>
 			</plist>
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)
+		writeTo(file, projectConfig.genericIde.root)
 	}
 	
+	
 	protected def generateExtensionJs () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/src/extension.js")
+		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/src/extension.js")
 		file.content = '''
 			'use strict';
 			var net = require('net');
@@ -172,11 +176,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 			exports.activate = activate;
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)		
+		writeTo(file, projectConfig.genericIde.root)		
 	}
 	
 	protected def generateBuildGradle () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/build.gradle")
+		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/build.gradle")
 		file.content = '''
 			/**
 			 * Problem: right now we cannot install the plugin in a headless mode.
@@ -196,15 +200,18 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    args "$rootProject.projectDir/demo/", '--reuse-window'
 			}
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)		
+		writeTo(file, projectConfig.genericIde.root)		
 	}
 	
-	override protected IVSCodeProjectConfig getProjectConfig() {
-		super.getProjectConfig() as IVSCodeProjectConfig
+	def getVsCodeExtensionPath(IXtextProjectConfig config) {
+		config.genericIde.root.path+"/vscode-extension"
 	}
-	
+
+	def getLangName () {
+		grammar.name.toQualifiedName.lastSegment
+	}
 	def getLangNameLower () {
-		grammar.name.toLowerCase
+		grammar.name.toQualifiedName.lastSegment.toLowerCase
 	}
 	
 }
