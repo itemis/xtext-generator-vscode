@@ -1,11 +1,13 @@
 plugins {
-	id 'org.xtext.xtend' version '1.0.6'
+	id 'org.xtext.xtend' version '1.0.4'
 	id 'com.jfrog.bintray' version '1.7'
 	id 'net.researchgate.release' version '2.4.0'
 	id 'eclipse'
 	id 'maven'
 	id 'jacoco'
 }
+
+apply from: "$rootDir/gradle/source-layout.gradle"
 
 group = 'com.itemis.xtext'
 
