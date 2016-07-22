@@ -1,4 +1,6 @@
-# Xtext Generator Fragment for Visual Studio Code
+# Xtext Generator Fragment for Visual Studio Code Extensions
+
+[![Build Status](https://travis-ci.org/itemis/xtext-generator-vscode.svg?branch=master)](https://travis-ci.org/itemis/xtext-generator-vscode)
 
 ## Workflow Configuration
 
@@ -14,7 +16,7 @@
 		}
 		language = StandardLanguage {
 			...
-			fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment{}
+			fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {}
 		}
 	}
 ```
