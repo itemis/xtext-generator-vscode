@@ -4,7 +4,7 @@
 
 ## Usage
 
-Add this do your project by configuring a dependency as follows:
+Add this to your project by configuring a dependency as follows:
 
 Gradle:
 ```
