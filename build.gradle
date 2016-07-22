@@ -1,36 +1,30 @@
 plugins {
-  id "org.xtext.xtend" version "1.0.6"
+	id 'org.xtext.xtend' version '1.0.6'
+	id 'com.jfrog.bintray' version '1.7'
+	id 'net.researchgate.release' version '2.4.0'
+	id 'eclipse'
+	id 'maven'
+	id 'jacoco'
 }
 
-apply plugin: 'eclipse'
-apply plugin: 'maven'
-
-group = "com.itemis.xtext"
-
+group = 'com.itemis.xtext'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-project.ext {
-		/* Configure versions that are either likely to change or need to be reused. */
-		versions = [
-			xtext: "2.10+",
-			junit: "4.12+"
-		]
-}
+ext.xtextVersion = '2.10.0'
 
 repositories {
-    jcenter()
+	jcenter()
 }
 
 dependencies {
-    compile 'org.slf4j:slf4j-api:1.7.13'
+	compile 'org.slf4j:slf4j-api:1.7.13'
 
-    testCompile 'junit:junit:4.12'
-    compile "org.eclipse.xtend:org.eclipse.xtend.lib:${versions.xtext}"
-	compile "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${versions.xtext}"
+	testCompile 'junit:junit:4.12'
+	compile "org.eclipse.xtend:org.eclipse.xtend.lib:$xtextVersion"
+	compile "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:$xtextVersion"
 }
-
 
 task sourcesJar(type: Jar, dependsOn: classes) {
 	classifier 'sources'
@@ -40,3 +34,53 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 artifacts {
 	archives sourcesJar
 }
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+check.dependsOn jacocoTestReport
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    configurations = ['archives']
+    publish = true
+    pkg {
+        repo = 'maven'
+        name = 'xtext-generator-vscode'
+        licenses = ['EPL-1.0']
+        version {
+            name = project.version
+        }
+    }
+}
+
+task updateReadmeVersion << {
+    def versionPattern = /\d+.\d+(.\d+)?/
+    def encoding = 'UTF-8'
+    File file = new File('README.md')
+
+    // String replacements - Readme isn't long enough to justify advanced code ;)
+    String text = file.getText(encoding)
+    text = text.replaceAll("generator-vscode:$versionPattern", "generator-vscode:$project.version")
+
+    file.setText(text, encoding)
+}
+updateReadmeVersion.shouldRunAfter tasks.getByName('confirmReleaseVersion')
+
+/*
+ * Configure release plugin.
+ * Remove tasks "updateVersion" and "commitNewVersion" as we don't want the new SNAPSHOT
+ * version commit on the master branch.
+ */
+tasks.release.tasks -= ["updateVersion", "commitNewVersion"]
+release {
+    preTagCommitMessage = '[release] '
+    tagCommitMessage = '[release] '
+    tagTemplate = 'v${version}'
+}
+tasks.getByName('preTagCommit').dependsOn updateReadmeVersion
