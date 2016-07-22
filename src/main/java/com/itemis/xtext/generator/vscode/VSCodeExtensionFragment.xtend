@@ -3,18 +3,17 @@ package com.itemis.xtext.generator.vscode
 import javax.inject.Inject
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.xtext.generator.AbstractXtextGeneratorFragment
-import org.eclipse.xtext.xtext.generator.CodeConfig
 import org.eclipse.xtext.xtext.generator.model.FileAccessFactory
 
 import static com.itemis.xtext.generator.vscode.internal.FSAHelper.*
 
 class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
+
 	@Inject FileAccessFactory fileAccessFactory
-	@Inject CodeConfig codeConfig
-	
+//	@Inject CodeConfig codeConfig
 	@Accessors String publisher
 	@Accessors String version = "0.0.1"
-	
+
 	override generate() {
 		generateDummyPluginProperties
 		generatePackageJson
@@ -23,18 +22,17 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateExtensionJs
 		generateBuildGradle
 	}
-	
-	
-	protected def generateDummyPluginProperties () {
-		val file = fileAccessFactory.createTextFile(projectConfig.genericIde.srcGen.path+"/plugin.properties")
+
+	protected def void generateDummyPluginProperties() {
+		val file = fileAccessFactory.createTextFile(projectConfig.genericIde.srcGen.path + "/plugin.properties")
 		file.content = '''
 			_UI_DiagnosticRoot_diagnostic=foo
 		'''
 		writeTo(file, projectConfig.genericIde.srcGen)
 	}
-	
-	protected def generatePackageJson () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.root.path+"/package.json")
+
+	protected def void generatePackageJson() {
+		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.root.path + "/package.json")
 		file.content = '''
 			{
 			    "name": "«langNameLower»-sc",
@@ -42,7 +40,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    "description": "«language.grammar.name» Language (self-contained)",
 			    "version": "«version»",
 			    «IF publisher!=null»
-			    "publisher": "«publisher»",
+			    	"publisher": "«publisher»",
 			    «ENDIF»
 			    "engines": {
 			        "vscode": "^1.2.0"
@@ -54,33 +52,34 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 					"onLanguage:«langNameLower»"
 				],
 				"main": "src/extension",
-			    "contributes": {
-			        "languages": [{
-			            "id": "«langNameLower»",
-			            "aliases": ["«langNameLower»"],
-			            "extensions": [".«FOR ext: language.fileExtensions SEPARATOR ","»«ext»«ENDFOR»"],
-			            "configuration": "./«langNameLower».configuration.json"
-			        }],
-			        "grammars": [{
-			            "language": "«langNameLower»",
-			            "scopeName": "text.«langNameLower»",
-			            "path": "./syntaxes/«langNameLower».tmLanguage"
-			        }]
-			    },
+				   "contributes": {
+				       "languages": [{
+				           "id": "«langNameLower»",
+				           "aliases": ["«langNameLower»"],
+				           "extensions": [".«FOR ext : language.fileExtensions SEPARATOR ","»«ext»«ENDFOR»"],
+				           "configuration": "./«langNameLower».configuration.json"
+				       }],
+				       "grammars": [{
+				           "language": "«langNameLower»",
+				           "scopeName": "text.«langNameLower»",
+				           "path": "./syntaxes/«langNameLower».tmLanguage"
+				       }]
+				   },
 				"devDependencies": {
 					"typescript": "^1.8.10",
 					"vscode": "^0.11.13"
 				},
-			    "dependencies": {
-			        "vscode-languageclient": "^2.3.0"
-			    }
+				   "dependencies": {
+				       "vscode-languageclient": "^2.3.0"
+				   }
 			}
 		'''
 		writeTo(file, projectConfig.vsExtension.srcGen)
 	}
-	
-	protected def generateConfigurationJson () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/"+langNameLower+".configuration.json")
+
+	protected def void generateConfigurationJson() {
+		val file = fileAccessFactory.createTextFile(
+			projectConfig.vsExtension.srcGen.path + "/" + langNameLower + ".configuration.json")
 		file.content = '''
 			{
 			    "comments": {
@@ -115,9 +114,10 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		'''
 		writeTo(file, projectConfig.vsExtension.srcGen)
 	}
-	
-	def protected generateTmLanguage () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/syntaxes/"+langNameLower+".tmLanguage")
+
+	protected def void generateTmLanguage() {
+		val file = fileAccessFactory.createTextFile(
+			projectConfig.vsExtension.srcGen.path + "/syntaxes/" + langNameLower + ".tmLanguage")
 		file.content = '''
 			<?xml version="1.0" encoding="UTF-8"?>
 			<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -145,9 +145,9 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		'''
 		writeTo(file, projectConfig.vsExtension.srcGen)
 	}
-	
-	protected def generateExtensionJs () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/src/extension.js")
+
+	protected def void generateExtensionJs() {
+		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path + "/src/extension.js")
 		file.content = '''
 			'use strict';
 			var net = require('net');
@@ -172,11 +172,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 			exports.activate = activate;
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)		
+		writeTo(file, projectConfig.vsExtension.srcGen)
 	}
-	
-	protected def generateBuildGradle () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path+"/build.gradle")
+
+	protected def void generateBuildGradle() {
+		val file = fileAccessFactory.createTextFile(projectConfig.vsExtension.srcGen.path + "/build.gradle")
 		file.content = '''
 			/**
 			 * Problem: right now we cannot install the plugin in a headless mode.
@@ -196,15 +196,15 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    args "$rootProject.projectDir/demo/", '--reuse-window'
 			}
 		'''
-		writeTo(file, projectConfig.vsExtension.srcGen)		
+		writeTo(file, projectConfig.vsExtension.srcGen)
 	}
-	
-	override protected IVSCodeProjectConfig getProjectConfig() {
+
+	override IVSCodeProjectConfig getProjectConfig() {
 		super.getProjectConfig() as IVSCodeProjectConfig
 	}
-	
-	def getLangNameLower () {
+
+	def String getLangNameLower() {
 		grammar.name.toLowerCase
 	}
-	
+
 }
