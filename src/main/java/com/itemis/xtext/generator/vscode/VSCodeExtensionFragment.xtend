@@ -41,6 +41,15 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	/** Additional options for the JVM */
 	@Accessors(PUBLIC_SETTER)
 	String javaOptions
+
+	/** 
+	 * If set, add Java remote debugging options to the JVM. 
+	 * When 'javaOptions' are set, the debug options are set before the other options.
+	 */
+	Integer debugPort
+	def void setDebugPort (String debugPort) {
+		this.debugPort = Integer.valueOf(debugPort)
+	}
 	
 	/** Name of the Language Server. Default: "Xtext Server"*/
 	@Accessors(PUBLIC_SETTER)
@@ -60,7 +69,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generatePackageJson (langId, language.fileExtensions)
 		generateConfigurationJson
 		generateTmLanguage (langId, language.fileExtensions)
-		generateExtensionJs
+		generateExtensionJs (langId, language.fileExtensions)
 		generateBuildGradle
 	}
 	
@@ -187,8 +196,9 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	}
 	
 	
-	protected def generateExtensionJs () {
+	protected def generateExtensionJs (String langId, String[] langFileExt) {
 		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/src/extension.js")
+		val jvmOptions = getJVMOptions()
 		file.content = '''
 			'use strict';
 			var net = require('net');
@@ -198,12 +208,18 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			function activate(context) {
 			    var serverInfo = function () {
 			        // Connect to the language server via a io channel
-			        var jar = context.asAbsolutePath(path.join('src', '«langNameLower»-full.jar'));
-			        var child = spawn('java', [«IF javaOptions!=null»'«javaOptions»,«ENDIF»'-jar', jar]);
+			        var jar = context.asAbsolutePath(path.join('src', '«langId»-full.jar'));
+			        var child = spawn('java', [«IF jvmOptions!=null»'«jvmOptions»',«ENDIF»'-jar', jar]);
+			        child.stdout.on('data', function (chunk) {
+			            console.log(chunk.toString());
+			        });
+			        child.stderr.on('data', function (chunk) {
+			            console.error(chunk.toString());
+			        });
 			        return Promise.resolve(child);
 			    };
 			    var clientOptions = {
-			        documentSelector: ['«language.fileExtensions.head»']
+			        documentSelector: ['«langFileExt.join(",")»']
 			    };
 			    // Create the language client and start the client.
 			    var disposable = new vscode_lc.LanguageClient('«languageServerName»', serverInfo, clientOptions).start();
@@ -214,6 +230,22 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			exports.activate = activate;
 		'''
 		writeTo(file, projectConfig.genericIde.root)		
+	}
+	
+	/**
+	 * Compute the JVM options line.
+	 */
+	def private String getJVMOptions () {
+		val b = new StringBuilder
+		if (debugPort != null) {
+			b.append("-Xdebug -Xrunjdwp:server=y,transport=dt_socket,address="+debugPort+",suspend=n")
+		}
+		if (javaOptions != null) {
+			if (debugPort != null) b.append(" ")
+			b.append(javaOptions)
+		}
+		
+		return if (b.toString.empty) null else b.toString
 	}
 	
 	protected def generateBuildGradle () {
@@ -235,6 +267,14 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			task startCode(type:Exec, dependsOn: installExtension) {
 			    commandLine 'code'
 			    args "$rootProject.projectDir/demo/", '--reuse-window'
+			}
+			
+			task publish(dependsOn: vscodeExtension, type: NodeTask) {
+			    script = file("$rootProject.projectDir/node_modules/vsce/out/vsce")
+			    args = [ 'publish', '-p', System.getenv('ACCESS_TOKEN'), project.version ]
+			    execOverrides {
+			        workingDir = projectDir
+			    }
 			}
 		'''
 		writeTo(file, projectConfig.genericIde.root)		
