@@ -1,5 +1,8 @@
 package com.itemis.xtext.generator.vscode
 
+import java.util.Collections
+import java.util.List
+import java.util.regex.Pattern
 import javax.inject.Inject
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.naming.IQualifiedNameConverter
@@ -10,19 +13,53 @@ import org.eclipse.xtext.xtext.generator.model.project.IXtextProjectConfig
 
 import static com.itemis.xtext.generator.vscode.internal.FSAHelper.*
 
+import static extension org.eclipse.xtext.GrammarUtil.*
+import static extension org.eclipse.xtext.xtext.generator.web.RegexpExtensions.*
+
 class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	@Inject FileAccessFactory fileAccessFactory
 	@Inject CodeConfig codeConfig
 	@Inject extension IQualifiedNameConverter
 	
-	@Accessors String publisher 
-	@Accessors String version = "0.1"
+	@Accessors(PUBLIC_SETTER)
+	static class Versions {
+		String vscExtension = "0.1"
+		/** VSCode Engine version. Default: ^1.2.0*/
+		String vscEngine = "^1.2.0"
+		String typescript = "^1.8.10"
+		String vscode = "^0.11.13"
+		String vscodeLanguageclient = "^2.3.0"
+	}
 	
+	/** Publisher name */
+	@Accessors(PUBLIC_SETTER)
+	String publisher 
+	
+	@Accessors(PUBLIC_SETTER)
+	Versions versions = new Versions
+	
+	/** Additional options for the JVM */
+	@Accessors(PUBLIC_SETTER)
+	String javaOptions
+	
+	/** Name of the Language Server. Default: "Xtext Server"*/
+	@Accessors(PUBLIC_SETTER)
+	String languageServerName = "Xtext Server"
+
+	/**
+	 * Regular expression for filtering those language keywords that should be highlighted. The default
+	 * is {@code \w+}, i.e. keywords consisting only of letters and digits.
+	 */
+	@Accessors(PUBLIC_SETTER)
+	String keywordsFilter = "\\w+"
+	 
+
 	override generate() {
+		val langId = langNameLower
 		generateDummyPluginProperties
-		generatePackageJson
+		generatePackageJson (langId, language.fileExtensions)
 		generateConfigurationJson
-		generateTmLanguage
+		generateTmLanguage (langId, language.fileExtensions)
 		generateExtensionJs
 		generateBuildGradle
 	}
@@ -36,46 +73,46 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		writeTo(file, projectConfig.genericIde.root)
 	}
 	
-	protected def generatePackageJson () {
+	protected def generatePackageJson (String langId, String[] langFileExt) {
 		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/package.json")
 		file.content = '''
 			{
-			    "name": "«langNameLower»-sc",
+			    "name": "«langId»-sc",
 			    "displayName": "«langName»",
 			    "description": "«langName» Language (self-contained)",
-			    "version": "«version»",
+			    "version": "«versions.vscExtension»",
 			    «IF publisher!=null»
 			    "publisher": "«publisher»",
 			    «ENDIF»
 			    "engines": {
-			        "vscode": "^1.2.0"
+			        "vscode": "«versions.vscEngine»"
 			    },
 			    "categories": [
 			        "Languages"
 			    ],
 				"activationEvents": [
-					"onLanguage:«langNameLower»"
+					"onLanguage:«langId»"
 				],
 				"main": "src/extension",
 			    "contributes": {
 			        "languages": [{
-			            "id": "«langNameLower»",
-			            "aliases": ["«langNameLower»"],
-			            "extensions": [".«FOR ext: language.fileExtensions SEPARATOR ","»«ext»«ENDFOR»"],
-			            "configuration": "./«langNameLower».configuration.json"
+			            "id": "«langId»",
+			            "aliases": ["«langId»"],
+			            "extensions": [".«FOR ext: langFileExt SEPARATOR ","»«ext»«ENDFOR»"],
+			            "configuration": "./«langId».configuration.json"
 			        }],
 			        "grammars": [{
-			            "language": "«langNameLower»",
-			            "scopeName": "text.«langNameLower»",
-			            "path": "./syntaxes/«langNameLower».tmLanguage"
+			            "language": "«langId»",
+			            "scopeName": "text.«langId»",
+			            "path": "./syntaxes/«langId».tmLanguage"
 			        }]
 			    },
 				"devDependencies": {
-					"typescript": "^1.8.10",
-					"vscode": "^0.11.13"
+					"typescript": "«versions.typescript»",
+					"vscode": "«versions.vscode»"
 				},
 			    "dependencies": {
-			        "vscode-languageclient": "^2.3.0"
+			        "vscode-languageclient": "«versions.vscodeLanguageclient»"
 			    }
 			}
 		'''
@@ -119,8 +156,8 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		writeTo(file, projectConfig.genericIde.root)
 	}
 	
-	def protected generateTmLanguage () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/syntaxes/"+langNameLower+".tmLanguage")
+	def protected generateTmLanguage (String langId, String[] langFileExt) {
+		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/syntaxes/"+langId+".tmLanguage")
 		file.content = '''
 			<?xml version="1.0" encoding="UTF-8"?>
 			<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -128,21 +165,21 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			<dict>
 				<key>fileTypes</key>
 				<array>
-					<string>*.«language.fileExtensions.head»</string>
+					<string>«FOR ext: langFileExt SEPARATOR ","»*.«ext»«ENDFOR»</string>
 				</array>
 				<key>name</key>
-				<string>«langNameLower»</string>
+				<string>«langId»</string>
 				<key>patterns</key>
 				<array>
 					<dict>
 						<key>name</key>
-						<string>keyword.control.«langName»</string>
+						<string>keyword.control.«langId»</string>
 						<key>match</key>
-						<string>\b(Hello|from)\b</string>
+						<string>\b(«keywordPattern»)\b</string>
 					</dict>
 				</array>
 				<key>scopeName</key>
-				<string>text.«langNameLower»</string>
+				<string>text.«langId»</string>
 			</dict>
 			</plist>
 		'''
@@ -162,14 +199,14 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    var serverInfo = function () {
 			        // Connect to the language server via a io channel
 			        var jar = context.asAbsolutePath(path.join('src', '«langNameLower»-full.jar'));
-			        var child = spawn('java', ['-jar', jar]);
+			        var child = spawn('java', [«IF javaOptions!=null»'«javaOptions»,«ENDIF»'-jar', jar]);
 			        return Promise.resolve(child);
 			    };
 			    var clientOptions = {
 			        documentSelector: ['«language.fileExtensions.head»']
 			    };
 			    // Create the language client and start the client.
-			    var disposable = new vscode_lc.LanguageClient('Xtext Server', serverInfo, clientOptions).start();
+			    var disposable = new vscode_lc.LanguageClient('«languageServerName»', serverInfo, clientOptions).start();
 			    // Push the disposable to the context's subscriptions so that the 
 			    // client can be deactivated on extension deactivation
 			    context.subscriptions.push(disposable);
@@ -207,11 +244,33 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		config.genericIde.root.path+"/vscode-extension"
 	}
 
+	@Pure
 	def getLangName () {
 		grammar.name.toQualifiedName.lastSegment
 	}
+
+	@Pure
 	def getLangNameLower () {
 		grammar.name.toQualifiedName.lastSegment.toLowerCase
+	}
+
+	def protected String getKeywordPattern() {
+		val allKeywords = grammar.allKeywords
+		val wordKeywords = newArrayList
+		val nonWordKeywords = newArrayList
+		val keywordsFilterPattern = Pattern.compile(keywordsFilter)
+		val wordKeywordPattern = Pattern.compile('\\w(.*\\w)?')
+		allKeywords.filter[keywordsFilterPattern.matcher(it).matches].forEach[
+			if (wordKeywordPattern.matcher(it).matches)
+				wordKeywords += it
+			else
+				nonWordKeywords += it
+		]
+		Collections.sort(wordKeywords)
+		Collections.sort(nonWordKeywords)
+
+		val result = (wordKeywords+nonWordKeywords).map[it.toRegexpString(false)].join('|')
+		result
 	}
 	
 }
