@@ -52,9 +52,19 @@ bintray {
     pkg {
         repo = 'maven'
         name = 'xtext-generator-vscode'
+        userOrg = 'itemis'
+        websiteUrl = 'https://github.com/itemis/xtext-generator-vscode'
+        issueTrackerUrl = 'https://github.com/itemis/xtext-generator-vscode/issues'
+        vcsUrl = 'https://github.com/itemis/xtext-generator-vscode.git'
         licenses = ['EPL-1.0']
+        labels = ['xtext', 'vscode']
+
+        githubRepo = 'itemis/xtext-generator-vscode'
+        githubReleaseNotesFile = 'README.md'
+
         version {
             name = project.version
+            vcsTag = "v$project.version"
         }
     }
 }
