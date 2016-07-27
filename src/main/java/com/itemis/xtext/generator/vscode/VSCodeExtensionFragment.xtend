@@ -13,7 +13,7 @@ import org.eclipse.xtext.xtext.generator.model.project.IXtextProjectConfig
 
 import static com.itemis.xtext.generator.vscode.internal.FSAHelper.*
 
-import static extension org.eclipse.xtext.GrammarUtil.*
+import static extension org.eclipse.xtext.xtext.generator.util.GrammarUtil2.*
 import static extension org.eclipse.xtext.xtext.generator.web.RegexpExtensions.*
 
 class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
@@ -70,7 +70,8 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateConfigurationJson
 		generateTmLanguage (langId, language.fileExtensions)
 		generateExtensionJs (langId, language.fileExtensions)
-		generateBuildGradle
+		generateBuildGradle_VSCExtension
+		generateBuildGradle_GenericIDE
 	}
 	
 	
@@ -130,13 +131,16 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	
 	protected def generateConfigurationJson () {
 		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/"+langNameLower+".configuration.json")
+		val inheritsTerminals = grammar.inherits(TERMINALS)
 		file.content = '''
 			{
 			    "comments": {
-			        // symbol used for single line comment. Remove this entry if your language does not support line comments
-			        "lineComment": "//",
-			        // symbols used for start and end a block comment. Remove this entry if your language does not support block comments
-			        "blockComment": [ "/*", "*/" ]
+			    		«IF inheritsTerminals»
+				        // symbol used for single line comment. Remove this entry if your language does not support line comments
+				        "lineComment": "//",
+				        // symbols used for start and end a block comment. Remove this entry if your language does not support block comments
+				        "blockComment": [ "/*", "*/" ]
+			        «ENDIF»
 			    },
 			    // symbols used as brackets
 			    "brackets": [
@@ -248,7 +252,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		return if (b.toString.empty) null else b.toString
 	}
 	
-	protected def generateBuildGradle () {
+	protected def generateBuildGradle_VSCExtension () {
 		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/build.gradle")
 		file.content = '''
 			/**
@@ -312,5 +316,57 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		val result = (wordKeywords+nonWordKeywords).map[it.toRegexpString(false)].join('|')
 		result
 	}
-	
+
+	protected def generateBuildGradle_GenericIDE () {
+		val file = fileAccessFactory.createTextFile(projectConfig.genericIde.root.path+"/build.gradle")
+		file.content = '''
+			plugins {
+				id 'com.github.johnrengelman.shadow' version '1.2.3'
+			}
+			
+			apply plugin: 'application'
+			
+			import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+			
+			dependencies {
+				compile project(':org.xtext.example.mydsl')
+				compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
+				compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
+			}
+			
+			mainClassName = "org.xtext.example.mydsl.ide.RunServer"
+			
+			startScripts {
+				applicationName = 'MyDsl Language Server'
+			}
+			
+			task socketShadowJar(type: ShadowJar, dependsOn: assemble) {
+				manifest.attributes 'Main-Class': 'org.xtext.example.mydsl.ide.RunServer'
+				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
+				configurations = [project.configurations.runtime]
+				exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
+				classifier = 'socket-all'
+			}
+			
+			task ioShadowJar(type: ShadowJar, dependsOn: assemble) {
+				manifest.attributes 'Main-Class': 'org.eclipse.xtext.ide.server.ServerLauncher'
+				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
+				configurations = [project.configurations.runtime]
+				exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
+				baseName = 'mydsl-full'
+				classifier = null
+				version = null
+				destinationDir = file("$projectDir/../vscode-extension-self-contained/src")
+			}
+			
+			task shadowJars {
+				dependsOn socketShadowJar, ioShadowJar
+			}
+			
+			clean.doFirst {
+			    delete tasks.ioShadowJar.archivePath
+			}
+		'''	
+		writeTo(file, projectConfig.genericIde.root)
+	}
 }
