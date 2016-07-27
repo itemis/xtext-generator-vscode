@@ -1,7 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2016 itemis AG (http://www.itemis.de) and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *******************************************************************************/
 package com.itemis.xtext.generator.vscode
 
 import java.util.Collections
-import java.util.List
 import java.util.regex.Pattern
 import javax.inject.Inject
 import org.eclipse.xtend.lib.annotations.Accessors
@@ -13,6 +19,7 @@ import org.eclipse.xtext.xtext.generator.model.project.IXtextProjectConfig
 
 import static com.itemis.xtext.generator.vscode.internal.FSAHelper.*
 
+import static extension org.eclipse.xtext.GrammarUtil.*
 import static extension org.eclipse.xtext.xtext.generator.util.GrammarUtil2.*
 import static extension org.eclipse.xtext.xtext.generator.web.RegexpExtensions.*
 
