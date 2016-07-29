@@ -6,7 +6,7 @@
 
 **Gradle**
 
-Add this to your project by configuring a dependency as follows:
+Add this to your project by configuring a dependency as follows: 
 
 ```
 	repositories {
@@ -25,7 +25,21 @@ Add this to your project by configuring a dependency as follows:
 Add the `VSCodeExtensionFragment` to the Xtext Generator workflow component.
 
 ```
+	// create project folder, .project and Gradle prefs 	
+	bean = com.itemis.xtext.generator.vscode.ProjectInitializer {
+		path = "${rootPath}/org.xtext.example.mydsl3.vscode-extension"
+	}
+
 	component = XtextGenerator {
+		configuration = {
+			project = com.itemis.xtext.generator.vscode.VSCodeProjectConfig {
+			   ...
+				vsExtension = {
+					enabled = true
+				}
+				...
+			}
+		}
 		language = StandardLanguage {
 			...
 			fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {}

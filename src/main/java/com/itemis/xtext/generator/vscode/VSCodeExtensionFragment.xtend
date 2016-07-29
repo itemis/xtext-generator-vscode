@@ -36,6 +36,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		String typescript = "^1.8.10"
 		String vscode = "^0.11.13"
 		String vscodeLanguageclient = "^2.3.0"
+		String shadowJarGradlePlugin = "1.2.3"
 	}
 	
 	/** Publisher name */
@@ -78,7 +79,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateTmLanguage (langId, language.fileExtensions)
 		generateExtensionJs (langId, language.fileExtensions)
 		generateBuildGradle_VSCExtension
-		generateBuildGradle_GenericIDE
+		generateBuildGradle_GenericIDE (langId)
 	}
 	
 	
@@ -91,7 +92,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	}
 	
 	protected def generatePackageJson (String langId, String[] langFileExt) {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/package.json")
+		val file = fileAccessFactory.createTextFile("/package.json")
 		file.content = '''
 			{
 			    "name": "«langId»-sc",
@@ -133,11 +134,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    }
 			}
 		'''
-		writeTo(file, projectConfig.genericIde.root)
+		writeTo(file, projectConfig.vsExtension.root)
 	}
 	
 	protected def generateConfigurationJson () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/"+langNameLower+".configuration.json")
+		val file = fileAccessFactory.createTextFile(langNameLower+".configuration.json")
 		val inheritsTerminals = grammar.inherits(TERMINALS)
 		file.content = '''
 			{
@@ -173,11 +174,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    ]
 			}
 		'''
-		writeTo(file, projectConfig.genericIde.root)
+		writeTo(file, projectConfig.vsExtension.root)
 	}
 	
 	def protected generateTmLanguage (String langId, String[] langFileExt) {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/syntaxes/"+langId+".tmLanguage")
+		val file = fileAccessFactory.createTextFile("/syntaxes/"+langId+".tmLanguage")
 		file.content = '''
 			<?xml version="1.0" encoding="UTF-8"?>
 			<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -203,12 +204,12 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			</dict>
 			</plist>
 		'''
-		writeTo(file, projectConfig.genericIde.root)
+		writeTo(file, projectConfig.vsExtension.root)
 	}
 	
 	
 	protected def generateExtensionJs (String langId, String[] langFileExt) {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/src/extension.js")
+		val file = fileAccessFactory.createTextFile("src/extension.js")
 		val jvmOptions = getJVMOptions()
 		file.content = '''
 			'use strict';
@@ -240,7 +241,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 			exports.activate = activate;
 		'''
-		writeTo(file, projectConfig.genericIde.root)		
+		writeTo(file, projectConfig.vsExtension.root)		
 	}
 	
 	/**
@@ -260,7 +261,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	}
 	
 	protected def generateBuildGradle_VSCExtension () {
-		val file = fileAccessFactory.createTextFile(projectConfig.vsCodeExtensionPath+"/build.gradle")
+		val file = fileAccessFactory.createTextFile("build.gradle")
 		file.content = '''
 			/**
 			 * Problem: right now we cannot install the plugin in a headless mode.
@@ -288,13 +289,9 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    }
 			}
 		'''
-		writeTo(file, projectConfig.genericIde.root)		
+		writeTo(file, projectConfig.vsExtension.root)		
 	}
 	
-	def getVsCodeExtensionPath(IXtextProjectConfig config) {
-		config.genericIde.root.path+"/vscode-extension"
-	}
-
 	@Pure
 	def getLangName () {
 		grammar.name.toQualifiedName.lastSegment
@@ -324,11 +321,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		result
 	}
 
-	protected def generateBuildGradle_GenericIDE () {
-		val file = fileAccessFactory.createTextFile(projectConfig.genericIde.root.path+"/build.gradle")
+	protected def generateBuildGradle_GenericIDE (String langId) {
+		val file = fileAccessFactory.createTextFile("build.gradle")
 		file.content = '''
 			plugins {
-				id 'com.github.johnrengelman.shadow' version '1.2.3'
+				id 'com.github.johnrengelman.shadow' version '«versions.shadowJarGradlePlugin»'
 			}
 			
 			apply plugin: 'application'
@@ -336,7 +333,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 			
 			dependencies {
-				compile project(':org.xtext.example.mydsl')
+				compile project(':«projectConfig.runtime.name»')
 				compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
 				compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
 			}
@@ -344,7 +341,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			mainClassName = "org.xtext.example.mydsl.ide.RunServer"
 			
 			startScripts {
-				applicationName = 'MyDsl Language Server'
+				applicationName = '«grammar.name.toQualifiedName.lastSegment» Language Server'
 			}
 			
 			task socketShadowJar(type: ShadowJar, dependsOn: assemble) {
@@ -360,10 +357,10 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
 				configurations = [project.configurations.runtime]
 				exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
-				baseName = 'mydsl-full'
+				baseName = '«langId»-full'
 				classifier = null
 				version = null
-				destinationDir = file("$projectDir/../vscode-extension-self-contained/src")
+				destinationDir = file("$projectDir/../«projectConfig.vsExtension.root.path»/src")
 			}
 			
 			task shadowJars {
@@ -375,5 +372,9 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 		'''	
 		writeTo(file, projectConfig.genericIde.root)
+	}
+	
+	override VSCodeProjectConfig getProjectConfig () {
+		super.projectConfig as VSCodeProjectConfig
 	}
 }
