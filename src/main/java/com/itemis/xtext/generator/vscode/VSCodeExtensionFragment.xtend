@@ -22,6 +22,7 @@ import static com.itemis.xtext.generator.vscode.internal.FSAHelper.*
 import static extension org.eclipse.xtext.GrammarUtil.*
 import static extension org.eclipse.xtext.xtext.generator.util.GrammarUtil2.*
 import static extension org.eclipse.xtext.xtext.generator.web.RegexpExtensions.*
+import org.eclipse.emf.mwe2.runtime.Mandatory
 
 class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	@Inject FileAccessFactory fileAccessFactory
@@ -30,18 +31,31 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	
 	@Accessors(PUBLIC_SETTER)
 	static class Versions {
-		String vscExtension = "0.1"
+		/** Version of the resulting extension */
+		String vscExtension = "0.1.0"
 		/** VSCode Engine version. Default: ^1.2.0*/
 		String vscEngine = "^1.2.0"
 		String typescript = "^1.8.10"
 		String vscode = "^0.11.13"
 		String vscodeLanguageclient = "^2.3.0"
 		String shadowJarGradlePlugin = "1.2.3"
+		String xtext = "2.11.0-SNAPSHOT"
 	}
 	
-	/** Publisher name */
+	/** If set, the build will add snapshot repositories for Xtext, ls-api */	
 	@Accessors(PUBLIC_SETTER)
-	String publisher 
+	Boolean useSnapshotRepositories = false
+
+	/** Publisher name */
+	String publisher
+	@Mandatory
+	def void setPublisher (String publisher) {
+		this.publisher = publisher
+	}
+
+	/** Extension License */	
+	@Accessors(PUBLIC_SETTER)
+	String license
 	
 	@Accessors(PUBLIC_SETTER)
 	Versions versions = new Versions
@@ -78,8 +92,8 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateConfigurationJson
 		generateTmLanguage (langId, language.fileExtensions)
 		generateExtensionJs (langId, language.fileExtensions)
-		generateBuildGradle_VSCExtension
-		generateBuildGradle_GenericIDE (langId)
+		generateGradleProperties
+		generateBuildGradle_VSCExtension (langId)
 	}
 	
 	
@@ -88,20 +102,21 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		file.content = '''
 			_UI_DiagnosticRoot_diagnostic=foo
 		'''
-		writeTo(file, projectConfig.genericIde.root)
+		writeTo(file, projectConfig.genericIde.srcGen)
 	}
 	
 	protected def generatePackageJson (String langId, String[] langFileExt) {
-		val file = fileAccessFactory.createTextFile("/package.json")
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/package.json")
 		file.content = '''
 			{
-			    "name": "«langId»-sc",
+			    "name": "«langId»",
 			    "displayName": "«langName»",
-			    "description": "«langName» Language (self-contained)",
+			    "description": "«langName» Language",
 			    "version": "«versions.vscExtension»",
-			    «IF publisher!=null»
 			    "publisher": "«publisher»",
-			    «ENDIF»
+			    «IF license!=null»
+			    		"license": "«license»",
+			    	«ENDIF»
 			    "engines": {
 			        "vscode": "«versions.vscEngine»"
 			    },
@@ -134,11 +149,15 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    }
 			}
 		'''
-		writeTo(file, projectConfig.vsExtension.root)
+		writeTo(file, projectConfig.genericIde.root)
+	}
+	
+	def getVscodeExtensionPath() {
+		"vscode"
 	}
 	
 	protected def generateConfigurationJson () {
-		val file = fileAccessFactory.createTextFile(langNameLower+".configuration.json")
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/"+langNameLower+".configuration.json")
 		val inheritsTerminals = grammar.inherits(TERMINALS)
 		file.content = '''
 			{
@@ -174,11 +193,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			    ]
 			}
 		'''
-		writeTo(file, projectConfig.vsExtension.root)
+		writeTo(file, projectConfig.genericIde.root)
 	}
 	
 	def protected generateTmLanguage (String langId, String[] langFileExt) {
-		val file = fileAccessFactory.createTextFile("/syntaxes/"+langId+".tmLanguage")
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/syntaxes/"+langId+".tmLanguage")
 		file.content = '''
 			<?xml version="1.0" encoding="UTF-8"?>
 			<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -204,12 +223,12 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			</dict>
 			</plist>
 		'''
-		writeTo(file, projectConfig.vsExtension.root)
+		writeTo(file, projectConfig.genericIde.root)
 	}
 	
 	
 	protected def generateExtensionJs (String langId, String[] langFileExt) {
-		val file = fileAccessFactory.createTextFile("src/extension.js")
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/src/extension.js")
 		val jvmOptions = getJVMOptions()
 		file.content = '''
 			'use strict';
@@ -220,7 +239,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			function activate(context) {
 			    var serverInfo = function () {
 			        // Connect to the language server via a io channel
-			        var jar = context.asAbsolutePath(path.join('src', '«langId»-full.jar'));
+			        var jar = context.asAbsolutePath(path.join('src', '«langId»-uber.jar'));
 			        var child = spawn('java', [«IF jvmOptions!=null»'«jvmOptions»',«ENDIF»'-jar', jar]);
 			        child.stdout.on('data', function (chunk) {
 			            console.log(chunk.toString());
@@ -241,7 +260,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 			exports.activate = activate;
 		'''
-		writeTo(file, projectConfig.vsExtension.root)		
+		writeTo(file, projectConfig.genericIde.root)		
 	}
 	
 	/**
@@ -260,9 +279,115 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		return if (b.toString.empty) null else b.toString
 	}
 	
-	protected def generateBuildGradle_VSCExtension () {
-		val file = fileAccessFactory.createTextFile("build.gradle")
+	protected def generateGradleProperties () {
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/gradle.properties")
 		file.content = '''
+			version = «versions.vscExtension»
+		'''
+		writeTo(file, projectConfig.genericIde.root)
+	}
+	
+	protected def generateBuildGradle_VSCExtension (String langId) {
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/build.gradle")
+		file.content = '''
+			buildscript {
+				repositories {
+					jcenter()
+				}
+				dependencies {
+					classpath 'org.xtext:xtext-gradle-plugin:1.0.5'
+					classpath 'com.moowork.gradle:gradle-node-plugin:0.13'
+				}
+			}
+			
+			plugins {
+				id 'com.github.johnrengelman.shadow' version '«versions.shadowJarGradlePlugin»'
+				id 'com.moowork.node' version '0.13'
+				id 'net.researchgate.release' version '2.4.0'
+			}
+			
+			node {
+				version = '6.2.2'
+				npmVersion = '3.10.6'
+				download = true
+			}
+			
+			apply plugin: 'java'
+			apply plugin: 'com.moowork.node'
+			
+			ext.xtextVersion = '«versions.xtext»'
+			
+			repositories {
+				jcenter()
+				mavenLocal()
+				«IF useSnapshotRepositories»
+					maven { url 'http://services.typefox.io/open-source/jenkins/job/lsapi/lastStableBuild/artifact/build/maven-repository/' }
+					maven { url 'http://services.typefox.io/open-source/jenkins/job/xtext-lib/job/master/lastStableBuild/artifact/build/maven-repository/' }
+					maven { url 'http://services.typefox.io/open-source/jenkins/job/xtext-core/job/master/lastStableBuild/artifact/build/maven-repository/' }
+					maven { url 'http://services.typefox.io/open-source/jenkins/job/xtext-extras/job/master/lastStableBuild/artifact/build/maven-repository/' }
+					maven { url 'http://services.typefox.io/open-source/jenkins/job/xtext-xtend/job/master/lastStableBuild/artifact/build/maven-repository/' }
+					maven {
+						url 'https://oss.sonatype.org/content/repositories/snapshots'
+					}
+				«ENDIF»
+			}
+			
+			dependencies {
+				compile "«projectConfig.runtime.name»:«projectConfig.runtime.name»:+"
+				compile "«projectConfig.runtime.name»:«projectConfig.genericIde.name»:+"
+				compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
+				compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
+			}
+			
+			task ioShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: assemble) {
+				manifest.attributes 'Main-Class': 'org.eclipse.xtext.ide.server.ServerLauncher'
+				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
+				configurations = [project.configurations.runtime]
+				exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
+				baseName = '«langId»-uber'
+				classifier = null
+				version = null
+				destinationDir = file("$projectDir/src")
+			}
+			
+			task shadowJars {
+				dependsOn ioShadowJar
+			}
+			
+			clean.doFirst {
+			    delete tasks.ioShadowJar.archivePath
+			}
+			
+			task npmInstallVsce(type: NpmTask, dependsOn: npmSetup) {
+				group 'Node'
+				description 'Installs the NodeJS package "Visual Studio Code Extension Manager"'
+				args = [ 'install', 'vsce' ]
+			}
+			
+			npmInstall.dependsOn 'shadowJars'
+			
+			task vscodeExtension(dependsOn: [npmInstall, npmInstallVsce], type: NodeTask) {
+				ext.destDir = buildDir
+				ext.archiveName = "«langId»-${project.version}.vsix"
+				ext.destPath = "$destDir/$archiveName"
+				outputs.dir destDir
+				doFirst {
+					destDir.mkdirs()
+				}
+				script = file("$projectDir/node_modules/vsce/out/vsce")
+				args = [ 'package', '--out', destPath ]
+				execOverrides {
+					workingDir = projectDir
+				}
+			}
+			
+			plugins.withType(com.moowork.gradle.node.NodePlugin) {
+				node {
+					workDir = file("$project.buildDir/nodejs")
+					nodeModulesDir = projectDir
+				}
+			}
+			
 			/**
 			 * Problem: right now we cannot install the plugin in a headless mode.
 			 * That's why we need this hacky task...
@@ -278,18 +403,48 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			
 			task startCode(type:Exec, dependsOn: installExtension) {
 			    commandLine 'code'
-			    args "$rootProject.projectDir/demo/", '--reuse-window'
+			    // args "$rootProject.projectDir/demo/", '--reuse-window'
 			}
 			
 			task publish(dependsOn: vscodeExtension, type: NodeTask) {
-			    script = file("$rootProject.projectDir/node_modules/vsce/out/vsce")
+			    script = file("$projectDir/node_modules/vsce/out/vsce")
 			    args = [ 'publish', '-p', System.getenv('ACCESS_TOKEN'), project.version ]
 			    execOverrides {
 			        workingDir = projectDir
 			    }
 			}
+			
+			task updateVersions << {
+			    def versionPattern = /\d+.\d+(.\d+)?/
+			    def encoding = 'UTF-8'
+			    def filesToUpdate = [
+					new File('package.json'),
+				]
+			
+			    // String replacements - isn't long enough to justify advanced code ;)
+				filesToUpdate.forEach { file ->
+					String text = file.getText(encoding)
+					text = text.replaceAll("\"version\": \"$versionPattern\",", "\"version\": \"$project.version\",")
+					file.setText(text, encoding)
+				}
+			}
+			
+			updateVersions.shouldRunAfter tasks.getByName('confirmReleaseVersion')
+			
+			/*
+			 * Configure release plugin.
+			 * Remove tasks "updateVersion" and "commitNewVersion" as we don't need to increment the
+			 * version to a SNAPSHOT before the next release.
+			 */
+			tasks.release.tasks -= ["updateVersion", "commitNewVersion"]
+			release {
+			    preTagCommitMessage = '[release] '
+			    tagCommitMessage = '[release] '
+			    tagTemplate = 'v${version}'
+			}
+			tasks.getByName('preTagCommit').dependsOn updateVersions
 		'''
-		writeTo(file, projectConfig.vsExtension.root)		
+		writeTo(file, projectConfig.genericIde.root)		
 	}
 	
 	@Pure
@@ -321,60 +476,4 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		result
 	}
 
-	protected def generateBuildGradle_GenericIDE (String langId) {
-		val file = fileAccessFactory.createTextFile("build.gradle")
-		file.content = '''
-			plugins {
-				id 'com.github.johnrengelman.shadow' version '«versions.shadowJarGradlePlugin»'
-			}
-			
-			apply plugin: 'application'
-			
-			import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-			
-			dependencies {
-				compile project(':«projectConfig.runtime.name»')
-				compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
-				compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
-			}
-			
-			mainClassName = "org.xtext.example.mydsl.ide.RunServer"
-			
-			startScripts {
-				applicationName = '«grammar.name.toQualifiedName.lastSegment» Language Server'
-			}
-			
-			task socketShadowJar(type: ShadowJar, dependsOn: assemble) {
-				manifest.attributes 'Main-Class': 'org.xtext.example.mydsl.ide.RunServer'
-				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
-				configurations = [project.configurations.runtime]
-				exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
-				classifier = 'socket-all'
-			}
-			
-			task ioShadowJar(type: ShadowJar, dependsOn: assemble) {
-				manifest.attributes 'Main-Class': 'org.eclipse.xtext.ide.server.ServerLauncher'
-				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
-				configurations = [project.configurations.runtime]
-				exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA')
-				baseName = '«langId»-full'
-				classifier = null
-				version = null
-				destinationDir = file("$projectDir/../«projectConfig.vsExtension.root.path»/src")
-			}
-			
-			task shadowJars {
-				dependsOn socketShadowJar, ioShadowJar
-			}
-			
-			clean.doFirst {
-			    delete tasks.ioShadowJar.archivePath
-			}
-		'''	
-		writeTo(file, projectConfig.genericIde.root)
-	}
-	
-	override VSCodeProjectConfig getProjectConfig () {
-		super.projectConfig as VSCodeProjectConfig
-	}
 }

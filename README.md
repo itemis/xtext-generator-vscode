@@ -9,15 +9,15 @@
 Add this to your project by configuring a dependency as follows: 
 
 ```
-	repositories {
-    	maven {
-  			url  "http://dl.bintray.com/itemis/maven" 
-    	}
-	}
+repositories {
+  maven {
+    url  "http://dl.bintray.com/itemis/maven" 
+  }
+}
 
-	dependencies {
-		mwe2 'com.itemis.xtext:generator-vscode:0.1'
-	}
+dependencies {
+  mwe2 'com.itemis.xtext:generator-vscode:0.1'
+}
 ```
 
 **Workflow Configuration**
@@ -25,28 +25,21 @@ Add this to your project by configuring a dependency as follows:
 Add the `VSCodeExtensionFragment` to the Xtext Generator workflow component.
 
 ```
-	// create project folder, .project and Gradle prefs 	
-	bean = com.itemis.xtext.generator.vscode.ProjectInitializer {
-		path = "${rootPath}/org.xtext.example.mydsl3.vscode-extension"
-	}
-
-	component = XtextGenerator {
-		configuration = {
-			project = com.itemis.xtext.generator.vscode.VSCodeProjectConfig {
-			   ...
-				vsExtension = {
-					enabled = true
-				}
-				...
-			}
-		}
-		language = StandardLanguage {
-			...
-			fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {}
-		}
-	}
+component = XtextGenerator {
+  language = StandardLanguage {
+    ...
+    fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {
+      // fragment configuration goes here...
+    }
+  }
+}
 ```
 
 **Execute Xtext Generator**
 
-Run the Xtext generator workflow. It will create a folder `vscode-extension` within the `.ide` project.
+Run ```gradle install```. Additionally to the language implementation a folder `vscode` will be produced within the `.ide` project. The folder contains a subproject for the VS Code extension.
+
+To build the extension, go into the `vscode` folder and enter ```gradle startCode```.
+
+The resulting extension is built to ```vscode/build/<dsl>-<version>.vsix``` and installed into VS Code.
+
