@@ -97,12 +97,36 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 
 	override generate() {
 		val langId = langNameLower
+		generateIgnoreFiles (langId, language.fileExtensions)
 		generatePackageJson (langId, language.fileExtensions)
 		generateConfigurationJson
 		generateTmLanguage (langId, language.fileExtensions)
 		generateExtensionJs (langId, language.fileExtensions)
 		generateGradleProperties
 		generateBuildGradle_VSCExtension (langId)
+	}
+	
+	/**
+	 * Generates .gitignore and .vscodeignore
+	 */
+	protected def generateIgnoreFiles (String langId, String[] langFileExt) {
+		val gitignore = fileAccessFactory.createTextFile(vscodeExtensionPath+"/.gitignore")
+		gitignore.content = '''
+			*.jar
+			*.vsix
+			.vscode
+			node_modules
+		'''
+		gitignore.writeTo(projectConfig.genericIde.root)
+		
+		val vscodeignore = fileAccessFactory.createTextFile(vscodeExtensionPath+"/.vscodeignore")
+		vscodeignore.content = '''
+			.gitignore
+			.gradle/**
+			build/**
+			*.gradle
+		'''
+		vscodeignore.writeTo(projectConfig.genericIde.root)
 	}
 	
 	protected def generatePackageJson (String langId, String[] langFileExt) {
