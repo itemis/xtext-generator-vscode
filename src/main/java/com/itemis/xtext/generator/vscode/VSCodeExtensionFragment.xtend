@@ -104,6 +104,8 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateExtensionJs (langId, language.fileExtensions)
 		generateGradleProperties
 		generateBuildGradle_VSCExtension (langId)
+		generateReadMe (langId)
+		generateLicense (langId)
 	}
 	
 	/**
@@ -418,6 +420,32 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		'''
 		file.writeTo(projectConfig.genericIde.root)
 	}
+
+	protected def generateReadMe (String langId) {
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/README.md")
+		file.content = '''
+			# «langName» Language
+			
+			This extension integrates the «langName» Language into Visual Studio Code.
+			
+			Supports:
+			
+			* Syntax Coloring
+			* Content Assist
+			* Go To Definition
+			
+			The language is integrated by a separate java process via the Language Server Protocol.
+		'''
+		file.writeTo(projectConfig.genericIde.root)
+	}
+	
+	protected def generateLicense (String langId) {
+		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/LICENSE.txt")
+		file.content = '''
+			«licenseText»
+		'''
+		file.writeTo(projectConfig.genericIde.root)
+	}
 	
 	def protected isUseSnapshotRepositories() {
 		versions.xtext.endsWith("-SNAPSHOT")
@@ -452,4 +480,8 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		result
 	}
 
+	def protected getLicenseText () {
+		if (license==null) return ""
+		license
+	}
 }
