@@ -50,10 +50,14 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		String node = "6.2.2"
 		/** NPM version. Default: 3.10.6 */
 		String npm = "3.10.6"
+		/** Version for Gradle plugin org.xtext:xtext-gradle-plugin. Default: 1.0.5 */
+		String xtextGradlePlugin = "1.0.5"
 		/** Version for Gradle plugin com.moowork.node. Default: 0.13 */
 		String nodeGradlePlugin = "0.13"
 		/** Version for Gradle plugin com.github.johnrengelman.shadow. Default: 1.2.3 */
 		String shadowJarGradlePlugin = "1.2.3"
+		/** Version for Gradle plugin net.researchgate.release. Default: 2.4.0 */
+		String releaseGradlePlugin = "2.4.0"
 	}
 	
 	/** Publisher name */
@@ -103,7 +107,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateTmLanguage (langId, language.fileExtensions)
 		generateExtensionJs (langId, language.fileExtensions)
 		generateGradleProperties
-		generateBuildGradle_VSCExtension (langId)
+		generateBuildGradle (langId)
 		generateReadMe (langId)
 		generateLicense (langId)
 	}
@@ -127,6 +131,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			.gradle/**
 			build/**
 			*.gradle
+			gradle.properties
 		'''
 		vscodeignore.writeTo(projectConfig.genericIde.root)
 	}
@@ -135,44 +140,44 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/package.json")
 		file.content = '''
 			{
-			    "name": "«langId»",
-			    "displayName": "«langName»",
-			    "description": "«langName» Language",
-			    "version": "«versions.vscExtension»",
-			    "publisher": "«publisher»",
-			    «IF license!=null»
-			    		"license": "«license»",
-			    	«ENDIF»
-			    "engines": {
-			        "vscode": "«versions.vscEngine»"
-			    },
-			    "categories": [
-			        "Languages"
-			    ],
+				"name": "«langId»",
+				"displayName": "«langName»",
+				"description": "«langName» Language",
+				"version": "«versions.vscExtension»",
+				"publisher": "«publisher»",
+				«IF license!=null»
+						"license": "«license»",
+					«ENDIF»
+				"engines": {
+					"vscode": "«versions.vscEngine»"
+				},
+				"categories": [
+					"Languages"
+				],
 				"activationEvents": [
 					"onLanguage:«langId»"
 				],
 				"main": "src/extension",
-			    "contributes": {
-			        "languages": [{
-			            "id": "«langId»",
-			            "aliases": ["«langId»"],
-			            "extensions": [".«FOR ext: langFileExt SEPARATOR ","»«ext»«ENDFOR»"],
-			            "configuration": "./«langId».configuration.json"
-			        }],
-			        "grammars": [{
-			            "language": "«langId»",
-			            "scopeName": "text.«langId»",
-			            "path": "./syntaxes/«langId».tmLanguage"
-			        }]
-			    },
+				"contributes": {
+					"languages": [{
+						"id": "«langId»",
+						"aliases": ["«langId»"],
+						"extensions": [".«FOR ext: langFileExt SEPARATOR ","»«ext»«ENDFOR»"],
+						"configuration": "./«langId».configuration.json"
+					}],
+					"grammars": [{
+						"language": "«langId»",
+						"scopeName": "text.«langId»",
+						"path": "./syntaxes/«langId».tmLanguage"
+					}]
+				},
 				"devDependencies": {
 					"typescript": "«versions.typescript»",
 					"vscode": "«versions.vscode»"
 				},
-			    "dependencies": {
-			        "vscode-languageclient": "«versions.vscodeLanguageclient»"
-			    }
+				"dependencies": {
+					"vscode-languageclient": "«versions.vscodeLanguageclient»"
+				}
 			}
 		'''
 		file.writeTo(projectConfig.genericIde.root)
@@ -187,36 +192,36 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		val inheritsTerminals = grammar.inherits(TERMINALS)
 		file.content = '''
 			{
-			    "comments": {
-			    		«IF inheritsTerminals»
-				        // symbol used for single line comment. Remove this entry if your language does not support line comments
-				        "lineComment": "//",
-				        // symbols used for start and end a block comment. Remove this entry if your language does not support block comments
-				        "blockComment": [ "/*", "*/" ]
-			        «ENDIF»
-			    },
-			    // symbols used as brackets
-			    "brackets": [
-			        ["{", "}"],
-			        ["[", "]"],
-			        ["(", ")"]
-			    ],
-			    // symbols that are auto closed when typing
-			    "autoClosingPairs": [
-			        ["{", "}"],
-			        ["[", "]"],
-			        ["(", ")"],
-			        ["\"", "\""],
-			        ["'", "'"]
-			    ],
-			    // symbols that that can be used to surround a selection
-			    "surroundingPairs": [
-			        ["{", "}"],
-			        ["[", "]"],
-			        ["(", ")"],
-			        ["\"", "\""],
-			        ["'", "'"]
-			    ]
+				"comments": {
+						«IF inheritsTerminals»
+						// symbol used for single line comment. Remove this entry if your language does not support line comments
+						"lineComment": "//",
+						// symbols used for start and end a block comment. Remove this entry if your language does not support block comments
+						"blockComment": [ "/*", "*/" ]
+					«ENDIF»
+				},
+				// symbols used as brackets
+				"brackets": [
+					["{", "}"],
+					["[", "]"],
+					["(", ")"]
+				],
+				// symbols that are auto closed when typing
+				"autoClosingPairs": [
+					["{", "}"],
+					["[", "]"],
+					["(", ")"],
+					["\"", "\""],
+					["'", "'"]
+				],
+				// symbols that that can be used to surround a selection
+				"surroundingPairs": [
+					["{", "}"],
+					["[", "]"],
+					["(", ")"],
+					["\"", "\""],
+					["'", "'"]
+				]
 			}
 		'''
 		file.writeTo(projectConfig.genericIde.root)
@@ -263,26 +268,26 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			var vscode_lc = require('vscode-languageclient');
 			var spawn = require('child_process').spawn;
 			function activate(context) {
-			    var serverInfo = function () {
-			        // Connect to the language server via a io channel
-			        var jar = context.asAbsolutePath(path.join('src', '«langId»-uber.jar'));
-			        var child = spawn('java', [«FOR opt: jvmOptions»'«opt»',«ENDFOR»'-jar', jar]);
-			        child.stdout.on('data', function (chunk) {
-			            console.log(chunk.toString());
-			        });
-			        child.stderr.on('data', function (chunk) {
-			            console.error(chunk.toString());
-			        });
-			        return Promise.resolve(child);
-			    };
-			    var clientOptions = {
-			        documentSelector: ['«langFileExt.join(",")»']
-			    };
-			    // Create the language client and start the client.
-			    var disposable = new vscode_lc.LanguageClient('«IF languageServerName!=null»«languageServerName»«ELSE»«langName»«ENDIF»', serverInfo, clientOptions).start();
-			    // Push the disposable to the context's subscriptions so that the 
-			    // client can be deactivated on extension deactivation
-			    context.subscriptions.push(disposable);
+				var serverInfo = function () {
+					// Connect to the language server via a io channel
+					var jar = context.asAbsolutePath(path.join('src', '«langId»-uber.jar'));
+					var child = spawn('java', [«FOR opt: jvmOptions»'«opt»',«ENDFOR»'-jar', jar]);
+					child.stdout.on('data', function (chunk) {
+						console.log(chunk.toString());
+					});
+					child.stderr.on('data', function (chunk) {
+						console.error(chunk.toString());
+					});
+					return Promise.resolve(child);
+				};
+				var clientOptions = {
+					documentSelector: ['«langFileExt.join(",")»']
+				};
+				// Create the language client and start the client.
+				var disposable = new vscode_lc.LanguageClient('«IF languageServerName!=null»«languageServerName»«ELSE»«langName»«ENDIF»', serverInfo, clientOptions).start();
+				// Push the disposable to the context's subscriptions so that the 
+				// client can be deactivated on extension deactivation
+				context.subscriptions.push(disposable);
 			}
 			exports.activate = activate;
 		'''
@@ -313,18 +318,34 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		file.writeTo(projectConfig.genericIde.root)
 	}
 	
-	protected def generateBuildGradle_VSCExtension (String langId) {
+	/**
+	 * Produces <code>build.gradle</code> file.
+	 */
+	protected def generateBuildGradle (String langId) {
 		val file = fileAccessFactory.createTextFile(vscodeExtensionPath+"/build.gradle")
 		file.content = '''
+			buildscript {
+				repositories {
+					jcenter()
+				}
+				dependencies {
+					classpath 'org.xtext:xtext-gradle-plugin:«versions.xtextGradlePlugin»'
+					classpath 'com.moowork.gradle:gradle-node-plugin:«versions.nodeGradlePlugin»'
+				}
+			}
+			
 			plugins {
 				id 'com.github.johnrengelman.shadow' version '«versions.shadowJarGradlePlugin»'
 				id 'com.moowork.node' version '«versions.nodeGradlePlugin»'
+				id 'net.researchgate.release' version '«versions.releaseGradlePlugin»'
 			}
 			
 			node {
 				version = '«versions.node»'
 				npmVersion = '«versions.npm»'
 				download = true
+				workDir = file("${project.buildDir}/nodejs")
+				nodeModulesDir = file("${project.projectDir}")
 			}
 			
 			apply plugin: 'java'
@@ -348,13 +369,10 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 			
 			dependencies {
-				compile "«projectConfig.runtime.name»:«projectConfig.runtime.name»:+"
 				compile "«projectConfig.runtime.name»:«projectConfig.genericIde.name»:+"
-				compile "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
-				compile "org.eclipse.xtext:org.eclipse.xtext.xbase.ide:${xtextVersion}"
 			}
 			
-			task ioShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: assemble) {
+			task packageShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: assemble) {
 				manifest.attributes 'Main-Class': 'org.eclipse.xtext.ide.server.ServerLauncher'
 				from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
 				configurations = [project.configurations.runtime]
@@ -364,15 +382,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 				version = null
 				destinationDir = file("$projectDir/src")
 				append('plugin.properties')
-				mergeServiceFiles() 
-			}
-			
-			task shadowJars {
-				dependsOn ioShadowJar
+				mergeServiceFiles()
 			}
 			
 			clean.doFirst {
-			    delete tasks.ioShadowJar.archivePath
+				delete tasks.ioShadowJar.archivePath
 			}
 			
 			task npmInstallVsce(type: NpmTask, dependsOn: npmSetup) {
@@ -381,41 +395,52 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 				args = [ 'install', 'vsce' ]
 			}
 			
-			npmInstall.dependsOn 'shadowJars'
+			npmInstall.dependsOn 'packageShadowJar'
 			
 			def vsce = file("$node.nodeModulesDir.path/node_modules/vsce/out/vsce")
 			
-			task vscodeExtension(type: Exec, dependsOn: [npmInstall, npmInstallVsce]) {
-			    ext.destDir = new File(buildDir, 'vscode')
-			    ext.archiveName = "«langId»-${project.version}.vsix"
-			    ext.destPath = "$destDir/$archiveName"
+			task vscodeExtension(type: Exec, dependsOn: [nodeSetup,npmInstall, npmInstallVsce]) {
+				ext.destDir = new File(buildDir, 'vscode')
+				ext.archiveName = "«langId»-${project.version}.vsix"
+				ext.destPath = "$destDir/$archiveName"
 			
-			    workingDir projectDir
-			    doFirst {
+				workingDir projectDir
+				doFirst {
 					destDir.mkdirs()
-			    	commandLine nodeSetup.variant.nodeExec, vsce, 'package', '--out', destPath
-			    }
+					commandLine nodeSetup.variant.nodeExec, vsce, 'package', '--out', destPath
+					//commandLine 'cmd.exe','/k','xxx.bat'
+				}
 			}
 			
-			clean.doFirst {
-				delete vscodeExtension.destDir
+			plugins.withType(com.moowork.gradle.node.NodePlugin) {
+				node {
+					workDir = file("$project.buildDir/nodejs")
+					nodeModulesDir = projectDir
+				}
 			}
 			
 			task installExtension(type: Exec, dependsOn: vscodeExtension) {
-			    commandLine 'code'
-			    args '--install-extension', vscodeExtension.destPath
+				if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+					commandLine 'cmd', '/c', 'code.cmd', '--install-extension', vscodeExtension.destPath
+				} else {
+					commandLine 'code', '--install-extension', vscodeExtension.destPath
+				}
 			}
 			
 			task startCode(type:Exec, dependsOn: installExtension) {
-			    commandLine 'code'
-				args '--new-window'
+				if (System.getProperty('os.name').toLowerCase().contains('windows')) {
+					commandLine 'cmd', '/k', 'code.cmd', '--new-window'
+				} else {
+					commandLine 'code', '--new-window'
+				}
 			}
 			
-			task publish(dependsOn: vscodeExtension) << {
-				project.exec {
-					workingDir projectDir
-					commandLine nodeSetup.variant.nodeExec, vsce, 'publish', '-p', System.getenv('ACCESS_TOKEN'), project.version
-			    }
+			task publish(dependsOn: vscodeExtension, type: NodeTask) {
+				script = file("$projectDir/node_modules/vsce/out/vsce")
+				args = [ 'publish', '-p', System.getenv('ACCESS_TOKEN'), project.version ]
+				execOverrides {
+					workingDir = projectDir
+				}
 			}
 		'''
 		file.writeTo(projectConfig.genericIde.root)

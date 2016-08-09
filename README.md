@@ -152,6 +152,11 @@ Allows to override the versions used for dependencies and build plugins. This is
   <td>Version for Gradle plugin com.github.johnrengelman.shadow</td>
   <td>1.2.3</td>
 </tr>
+<tr>
+  <td>releaseGradlePlugin</td>
+  <td>Version for Gradle plugin net.researchgate.release</td>
+  <td>2.4.0</td>
+</tr>
 </table>
 
 Example:
