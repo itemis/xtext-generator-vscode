@@ -377,7 +377,11 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			}
 			
 			dependencies {
-				compile "«projectConfig.runtime.name»:«projectConfig.genericIde.name»:+"
+				compile ("«projectConfig.runtime.name»:«projectConfig.genericIde.name»:+") {
+					exclude group:'org.antlr', module:'stringtemplate'
+					exclude group:'com.ibm.icu', module:'icu4j'
+					exclude group:'com.itemis.xtext', module:'generator-vscode'
+				}
 			}
 			
 			task packageShadowJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar, dependsOn: assemble) {
