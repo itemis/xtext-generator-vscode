@@ -169,3 +169,15 @@ fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {
   }
 }
 ```
+
+**useTravis**
+
+When using Travis CI this flag can be set to generate a `.travis.yml` and `.travis-publishOnRelease.sh` file.
+
+Example:
+
+```
+fragment = com.itemis.xtext.generator.vscode.VSCodeExtensionFragment {
+  useTravis = true
+}
+```

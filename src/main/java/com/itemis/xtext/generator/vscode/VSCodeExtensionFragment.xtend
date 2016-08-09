@@ -97,7 +97,12 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	 */
 	@Accessors(PUBLIC_SETTER)
 	String keywordsFilter = "\\w+"
-	 
+	
+	/**
+	 * If set to true, the fragment produces a <code>.travis.yml</code> and <code>.travis-publishOnRelease.sh</code> file.
+	 */
+	@Accessors(PUBLIC_SETTER)
+	boolean useTravis = false
 
 	override generate() {
 		val langId = langNameLower
@@ -110,6 +115,9 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		generateBuildGradle (langId)
 		generateReadMe (langId)
 		generateLicense (langId)
+		if (useTravis) {
+			generateTravis()
+		}
 	}
 	
 	/**
@@ -470,6 +478,43 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			«licenseText»
 		'''
 		file.writeTo(projectConfig.genericIde.root)
+	}
+	
+	protected def generateTravis () {
+		val travis_yml = fileAccessFactory.createTextFile(vscodeExtensionPath+"/.travis.yml")
+		travis_yml.content = '''
+			language: java
+			jdk:
+			  - oraclejdk8
+			os:
+			  - linux
+			cache:
+			  directories:
+			  - $HOME/.gradle
+			env:
+			  - NODE_VERSION=6.1
+			install:
+			  - nvm install $NODE_VERSION
+			  - npm install
+			script:
+			  - nvm use $NODE_VERSION
+			  - ./gradlew vscodeExtension --refresh-dependencies
+			after_success:
+			  - ./.travis-publishOnRelease.sh
+		'''
+		travis_yml.writeTo(projectConfig.genericIde.root)
+		
+		val travis_publishOnRelease_sh = fileAccessFactory.createTextFile(vscodeExtensionPath+"/.travis-publishOnRelease.sh")
+		travis_publishOnRelease_sh.content = '''
+			#!/bin/bash
+			# Execute only on tag builds where the tag starts with 'v'
+			
+			if [[ -n "$TRAVIS_TAG" && "$TRAVIS_TAG" == v* ]]; then
+				echo "Publishing version: $TRAVIS_TAG"
+				./gradlew publish
+			fi
+		'''
+		travis_publishOnRelease_sh.writeTo(projectConfig.genericIde.root)
 	}
 	
 	def protected isUseSnapshotRepositories() {
