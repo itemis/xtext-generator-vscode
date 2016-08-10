@@ -394,7 +394,6 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 				version = null
 				destinationDir = file("$projectDir/src")
 				append('plugin.properties')
-				mergeServiceFiles()
 			}
 			
 			clean.doFirst {
