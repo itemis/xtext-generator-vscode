@@ -309,7 +309,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 		val options = newArrayList()
 		if (debugPort != null) {
 			options.add("-Xdebug")
-			options.add("-Xrunjdwp:server=y,transport=dt_socket,address="+debugPort+",suspend=n")
+			options.add("-Xrunjdwp:server=y,transport=dt_socket,address="+debugPort+",suspend=n,quiet=y")
 		}
 		if (javaOptions != null) {
 			javaOptions.split("\\s").forEach[options += it]
