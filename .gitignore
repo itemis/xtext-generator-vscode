@@ -16,3 +16,6 @@ out/
 .gradle/
 build/
 !gradle-wrapper.jar
+.antlr-generator-*.jar
+xtend-gen
+src-gen

@@ -1,0 +1,37 @@
+{
+	"name": "entitiesdsl",
+	"displayName": "EntitiesDsl",
+	"description": "EntitiesDsl Language",
+	"version": "0.1.0",
+	"publisher": "itemis",
+	"engines": {
+		"vscode": "^1.2.0"
+	},
+	"categories": [
+		"Languages"
+	],
+	"activationEvents": [
+		"onLanguage:entitiesdsl"
+	],
+	"main": "src/extension",
+	"contributes": {
+		"languages": [{
+			"id": "entitiesdsl",
+			"aliases": ["entitiesdsl"],
+			"extensions": [".entities"],
+			"configuration": "./entitiesdsl.configuration.json"
+		}],
+		"grammars": [{
+			"language": "entitiesdsl",
+			"scopeName": "text.entitiesdsl",
+			"path": "./syntaxes/entitiesdsl.tmLanguage"
+		}]
+	},
+	"devDependencies": {
+		"typescript": "^1.8.10",
+		"vscode": "^0.11.13"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^2.3.0"
+	}
+}

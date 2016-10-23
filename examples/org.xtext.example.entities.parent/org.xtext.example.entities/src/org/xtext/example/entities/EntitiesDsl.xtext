@@ -1,0 +1,28 @@
+grammar org.xtext.example.entities.EntitiesDsl with org.eclipse.xtext.common.Terminals
+
+generate entitiesDsl "http://www.xtext.org/example/entities/EntitiesDsl"
+
+Model:
+	types+=Type*;
+	
+Type:
+	DataType | Entity
+;
+
+DataType:
+	'datatype' name=ID
+;
+
+Entity:
+	'entity' name=ID '{'
+		features+=Feature*
+	'}'
+;
+
+Feature:
+	Attribute
+;
+
+Attribute:
+	type=[Type] attrrName=ID
+;
