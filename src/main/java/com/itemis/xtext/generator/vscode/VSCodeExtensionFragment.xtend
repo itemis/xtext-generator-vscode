@@ -27,7 +27,6 @@ import static extension org.eclipse.xtext.xtext.generator.web.RegexpExtensions.*
  * 
  * @author Karsten Thoms - Initial contribution and API
  */
-@SuppressWarnings("restriction","unchecked")
 class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 	@Inject FileAccessFactory fileAccessFactory
 	@Inject extension IQualifiedNameConverter
@@ -315,7 +314,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 			javaOptions.split("\\s").forEach[options += it]
 		}
 		
-		return if (options.empty) null else options
+		return options
 	}
 	
 	protected def generateGradleProperties () {
