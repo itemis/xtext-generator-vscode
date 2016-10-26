@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-  mwe2 'com.itemis.xtext:generator-vscode:0.3'
+  mwe2 'com.itemis.xtext:generator-vscode:0.4'
 }
 ```
 
