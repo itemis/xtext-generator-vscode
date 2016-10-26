@@ -288,7 +288,7 @@ class VSCodeExtensionFragment extends AbstractXtextGeneratorFragment {
 					return Promise.resolve(child);
 				};
 				var clientOptions = {
-					documentSelector: ['«langFileExt.join(",")»']
+					documentSelector: ['«langId»']
 				};
 				// Create the language client and start the client.
 				var disposable = new vscode_lc.LanguageClient('«IF languageServerName!=null»«languageServerName»«ELSE»«langName»«ENDIF»', serverInfo, clientOptions).start();
