@@ -1,37 +1,53 @@
 {
-	"name": "entitiesdsl",
-	"displayName": "EntitiesDsl",
-	"description": "EntitiesDsl Language",
-	"version": "0.1.0",
-	"publisher": "itemis",
-	"engines": {
-		"vscode": "^1.2.0"
-	},
-	"categories": [
-		"Languages"
-	],
-	"activationEvents": [
-		"onLanguage:entitiesdsl"
-	],
-	"main": "src/extension",
-	"contributes": {
-		"languages": [{
-			"id": "entitiesdsl",
-			"aliases": ["entitiesdsl"],
-			"extensions": [".entities"],
-			"configuration": "./entitiesdsl.configuration.json"
-		}],
-		"grammars": [{
-			"language": "entitiesdsl",
-			"scopeName": "text.entitiesdsl",
-			"path": "./syntaxes/entitiesdsl.tmLanguage"
-		}]
-	},
-	"devDependencies": {
-		"typescript": "^1.8.10",
-		"vscode": "^0.11.13"
-	},
-	"dependencies": {
-		"vscode-languageclient": "^2.3.0"
-	}
+    "name": "xtext-vscode-example",
+    "displayName": "Xtext VS Code example",
+    "description": "A simple DSL example for VS Code",
+    "version": "0.0.13",
+    "publisher": "itemis",
+    "license": "EPL-1.0",
+    "repository" : { 
+        "type" : "git",
+        "url" : "https://github.com/itemis/xtext-languageserver-example.git"
+    },
+    "bugs": {
+        "url": "https://github.com/itemis/xtext-languageserver-example/issues"
+    },
+    "engines": {
+        "vscode": "^1.2.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "activationEvents": [
+        "onLanguage:entities"
+    ],
+    "main": "src/extension",
+    "contributes": {
+        "languages": [
+            {
+                "id": "entities",
+                "aliases": [
+                    "entities"
+                ],
+                "extensions": [
+                    ".entities"
+                ],
+                "configuration": "./entitiesdsl.configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "entities",
+                "scopeName": "text.entitiesdsl",
+                "path": "./syntaxes/entitiesdsl.tmLanguage"
+            }
+        ]
+    },
+    "devDependencies": {
+        "typescript": "^1.8.10",
+        "vscode": "^0.11.13"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^2.3.0"
+    }
 }
